@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Tiffin Tracker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    select, input[type="checkbox"] {
+      transform: scale(1.2);
+    }
+    .btn {
+      padding: 10px 20px;
+      margin-top: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .btn:hover {
+      background-color: #0056b3;
+    }
+    .summary {
+      margin-top: 30px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .export-btn {
+      background-color: #28a745;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📅 Advanced Tiffin Tracker</h1>
+  <button class="btn" onclick="addTodayEntry()">Add Today's Entry</button>
+  <button class="btn export-btn" onclick="downloadCSV()">Download as CSV</button>  <table id="tracker">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Subah Mila?</th>
+        <th>Shaam Mila?</th>
+        <th>Usne Diya?</th>
+      </tr>
+    </thead>
+    <tbody id="tiffinBody"></tbody>
+  </table>  <div class="summary" id="summary"></div>  <script>
+    const body = document.getElementById('tiffinBody');
+    const summaryBox = document.getElementById('summary');
+
+    function saveData() {
+      const data = [];
+      document.querySelectorAll('#tiffinBody tr').forEach(row => {
+        const date = row.querySelector('td.date').textContent;
+        const subah = row.querySelector('input.subah').checked;
+        const shaam = row.querySelector('input.shaam').checked;
+        const diya = row.querySelector('select.diya').value;
+        data.push({ date, subah, shaam, diya });
+      });
+      localStorage.setItem('tiffinData', JSON.stringify(data));
+      updateSummary();
+    }
+
+    function loadData() {
+      const data = JSON.parse(localStorage.getItem('tiffinData') || '[]');
+      data.forEach(entry => addRow(entry.date, entry.subah, entry.shaam, entry.diya));
+      updateSummary();
+    }
+
+    function addRow(date, subah = false, shaam = false, diya = 'Yes') {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="date">${date}</td>
+        <td><input type="checkbox" class="subah" ${subah ? 'checked' : ''} onchange="saveData()"></td>
+        <td><input type="checkbox" class="shaam" ${shaam ? 'checked' : ''} onchange="saveData()"></td>
+        <td>
+          <select class="diya" onchange="saveData()">
+            <option value="Yes" ${diya === 'Yes' ? 'selected' : ''}>Yes</option>
+            <option value="No" ${diya === 'No' ? 'selected' : ''}>No</option>
+          </select>
+        </td>
+      `;
+      body.appendChild(row);
+    }
+
+    function addTodayEntry() {
+      const today = new Date().toISOString().split('T')[0];
+      const exists = Array.from(document.querySelectorAll('td.date')).some(td => td.textContent === today);
+      if (!exists) {
+        addRow(today);
+        saveData();
+      } else {
+        alert("Aaj ka entry already hai!");
+      }
+    }
+
+    function updateSummary() {
+      const data = JSON.parse(localStorage.getItem('tiffinData') || '[]');
+      let totalDays = data.length;
+      let subahCount = data.filter(d => d.subah).length;
+      let shaamCount = data.filter(d => d.shaam).length;
+      let diyaYes = data.filter(d => d.diya === 'Yes').length;
+      let diyaNo = data.filter(d => d.diya === 'No').length;
+
+      summaryBox.innerHTML = `
+        <h3>📊 Monthly Summary</h3>
+        <p><strong>Total Days:</strong> ${totalDays}</p>
+        <p><strong>Subah Tiffin Mila:</strong> ${subahCount} din</p>
+        <p><strong>Shaam Tiffin Mila:</strong> ${shaamCount} din</p>
+        <p><strong>Usne Diya (Yes):</strong> ${diyaYes} din</p>
+        <p><strong>Usne Nahi Diya (No):</strong> ${diyaNo} din</p>
+      `;
+    }
+
+    function downloadCSV() {
+      const data = JSON.parse(localStorage.getItem('tiffinData') || '[]');
+      let csv = "Date,Subah Mila?,Shaam Mila?,Usne Diya?\n";
+      data.forEach(row => {
+        csv += `${row.date},${row.subah ? 'Yes' : 'No'},${row.shaam ? 'Yes' : 'No'},${row.diya}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tiffin_tracker.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    loadData();
+  </script></body>
+</html>
